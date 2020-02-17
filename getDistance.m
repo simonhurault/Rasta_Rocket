@@ -4,7 +4,7 @@ coordonneeMurB = matrice \ [xMurB; yMurB; 1] % coordonnee du point B du mur
 matriceDistance = [[porteeCapteur*cos(angleCapteur), coordonneeMurA(1)-coordonneeMurB(1)];...
                    [porteeCapteur*sin(angleCapteur), coordonneeMurA(2)-coordonneeMurB(2)]];
 if (abs(det(matriceDistance)) < 0.001)
-    st = [10000; 10000];
+    distance = [10000; 10000];
 else
     st = matriceDistance \ [coordonneeMurA(1); coordonneeMurA(2)]
     % s est represente l'intersection pour le laser

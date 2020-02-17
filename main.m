@@ -20,11 +20,51 @@ capteur1.angle = 0;
 capteur2.angle = pi/6;
 capteur3.angle = -pi/6; 
 
-obstacle1.ptr = line([7,7],[-1,2],'color','r','linewidth',3);
-bordureg.ptr = line([-1,-1],[-1,10],'color','r','linewidth',3);
-bordureh.ptr = line([-1,10],[10,10],'color','r','linewidth',3);
-bordured.ptr = line([10,10],[10,-1],'color','r','linewidth',3);
-bordureb.ptr = line([10,-1],[-1,-1],'color','r','linewidth',3);
+% Obstacle 1 %
+obstacle1.xA = 7
+obstacle1.yA = -1
+obstacle1.xB = 7
+obstacle1.yB = 2
+obstacle1.ptr = line([obstacle1.xA, obstacle1.xB],[obstacle1.yA,obstacle1.yB],'color','r','linewidth',3);
+
+% Bordure %
+
+% gauche
+bordureg.xA = -1
+bordureg.yA = -1
+bordureg.xB = -1
+bordureg.yB = 10
+bordureg.ptr = line([bordureg.xA, bordureg.xB],[bordureg.yA,bordureg.yB],'color','r','linewidth',3);
+
+% Haute
+bordureh.xA = -1
+bordureh.yA = 10
+bordureh.xB = 10
+bordureh.yB = 10
+bordureh.ptr = line([bordureh.xA, bordureh.xB],[bordureh.yA,bordureh.yB],'color','r','linewidth',3);
+
+% Droite
+bordured.xA = 10
+bordured.yA = 10
+bordured.xB = 10
+bordured.yB = -1
+bordured.ptr = line([bordured.xA, bordured.xB],[bordured.yA,bordured.yB],'color','r','linewidth',3);
+
+% Bas
+bordureb.xA = 10
+bordureb.yA = -1
+bordureb.xB = -1
+bordureb.yB = -1
+bordureb.ptr = line([bordureb.xA, bordureb.xB],[bordureb.yA,bordureb.yB],'color','r','linewidth',3);
+
+
+array_obstacle_line =[obstacle1];
+array_obstacle_line(2) = bordureg
+array_obstacle_line(3) = bordureh
+array_obstacle_line(4) = bordured
+array_obstacle_line(5) = bordureb
+
+size_array_line = 5
 
 %coord robot
 [rasta.X,rasta.Y]= ginput(1);
@@ -83,9 +123,9 @@ for t = 0 : dt : Tmax;
     'Ydata',[rasta.Y,rasta.Y + capteur.Portee * sin(rasta.theta + capteur3.angle)])
 
     % calcul commande
-    st1 = getDistance(capteur.Portee, capteur1.angle, 7, -1, 7, 2, matrice)
-    st2 = getDistance(capteur.Portee, capteur2.angle, 7, -1, 7, 2, matrice)
-    st3 = getDistance(capteur.Portee, capteur3.angle, 7, -1, 7, 2, matrice)
+    st1 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur1)
+    st2 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur2)
+    st3 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur3)
 
     if(st1(1) < 1 && st1(2) < 1 && st1(1) > 0 && st1(2) > 0)
         u(1) = 0.1
@@ -111,9 +151,6 @@ for t = 0 : dt : Tmax;
     L45 = length(t45);
     x = x45(L45,:);
     drawnow
-    
-    % get distance %
-    %matriceObstacle = [[capteur.portee ]
     
 
 
