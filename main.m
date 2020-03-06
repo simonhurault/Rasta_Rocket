@@ -15,17 +15,33 @@ axis([-1 10 -1 10])
 rasta.R = 0.14; % rayon roue
 rasta.L = 0.48; % distance entre roues
 rasta.H = 0.8; % longueur robot
+tau = 0.1;
 capteur.Portee = 3; % portee capteur
-capteur1.angle = 0;
-capteur2.angle = pi/6;
-capteur3.angle = -pi/6; 
+capteur1.angle = 0; %Capteur milieu
+capteur2.angle = pi/6; % capteur gauche
+capteur3.angle = -pi/6; % capteur droit
 
 % Obstacle 1 %
 obstacle1.xA = 7
-obstacle1.yA = -1
-obstacle1.xB = 7
-obstacle1.yB = 2
+obstacle1.yA = 3
+obstacle1.xB = 4
+obstacle1.yB = -1
 obstacle1.ptr = line([obstacle1.xA, obstacle1.xB],[obstacle1.yA,obstacle1.yB],'color','r','linewidth',3);
+
+% Obstacle 2 %
+obstacle2.xA = 0
+obstacle2.yA = 9
+obstacle2.xB = 3
+obstacle2.yB = 6
+obstacle2.ptr = line([obstacle2.xA, obstacle2.xB],[obstacle2.yA,obstacle2.yB],'color','r','linewidth',3);
+
+% Obstacle 3 %
+obstacle3.xA = 18
+obstacle3.yA = 12
+obstacle3.xB = 9
+obstacle3.yB = 3
+obstacle3.ptr = line([obstacle3.xA, obstacle3.xB],[obstacle3.yA,obstacle3.yB],'color','r','linewidth',3);
+
 
 % Bordure %
 
@@ -58,21 +74,23 @@ bordureb.yB = -1
 bordureb.ptr = line([bordureb.xA, bordureb.xB],[bordureb.yA,bordureb.yB],'color','r','linewidth',3);
 
 
-array_obstacle_line =[obstacle1];
-array_obstacle_line(2) = bordureg
-array_obstacle_line(3) = bordureh
-array_obstacle_line(4) = bordured
-array_obstacle_line(5) = bordureb
+array_obstacle_line =[bordureb,bordureg,bordureh,bordured,obstacle1,obstacle2,obstacle3];
+%array_obstacle_line(2) = bordureg
+%array_obstacle_line(3) = bordureh
+%array_obstacle_line(4) = bordured
+%array_obstacle_line(5) = bordureb
 
-size_array_line = 5
+size_array_line = 7
 
 %coord robot
 [rasta.X,rasta.Y]= ginput(1);
-rasta.theta = 0;
+rasta.theta = pi/4;
+rasta.omd = 0
+rasta.omg = 0
 
 
 capteur1.ptr = line([rasta.X,rasta.X + capteur.Portee * cos(rasta.theta)],...
-    [rasta.Y,rasta.Y + capteur.Portee * sin(rasta.theta)],'color','g','linewidth',3);
+     [rasta.Y,rasta.Y + capteur.Portee * sin(rasta.theta)],'color','g','linewidth',3);
 capteur2.ptr = line([rasta.X,rasta.X + capteur.Portee * cos(rasta.theta + capteur2.angle)],...
     [rasta.Y,rasta.Y + capteur.Portee * sin(rasta.theta + capteur2.angle)],'color','g','linewidth',3);
 capteur3.ptr = line([rasta.X,rasta.X + capteur.Portee * cos(rasta.theta + capteur3.angle)],...
@@ -92,11 +110,12 @@ rasta.ptr1 = patch(xt,yt,[0;4;7])
 
 
 % init environnement exec %
-Tmax = 60;
+Tmax = 500;
 dt = 0.1;
 
-x = [rasta.X rasta.Y 0] % init etat robot
-u = [0 0]
+x = [rasta.X rasta.Y rasta.theta rasta.omd rasta.omg] % init etat robot
+u = [0 0] % vitesse consigne roue droite puis gauche
+vitesse = [0 0] % vitesse de consigne engulaire et lineaire
 
 
 for t = 0 : dt : Tmax;
@@ -108,6 +127,8 @@ for t = 0 : dt : Tmax;
     rasta.X = x(1)
     rasta.Y = x(2)
     rasta.theta = x(3)
+    rasta.omd = x(4)
+    rasta.omg = x(5)
     
     % maj dessin
     xt = [rasta.X + rasta.L / 2 * sin(rasta.theta); rasta.X - rasta.L / 2 * sin(rasta.theta);...
@@ -126,28 +147,45 @@ for t = 0 : dt : Tmax;
     st1 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur1)
     st2 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur2)
     st3 = get_data_sensor(array_obstacle_line, size_array_line, capteur.Portee, matrice, capteur3)
+    
 
-    if(st1(1) < 1 && st1(2) < 1 && st1(1) > 0 && st1(2) > 0)
-        u(1) = 0.1
-        u(2) = 0.2
-        else
-        if(st2(1) < 1 && st2(2) < 1 && st2(1) > 0 && st2(2) > 0)
-        u(1) = 0.1
-        u(2) = -0.2
-        
-        else
-            if (st3(1) < 1 && st3(2) < 1 && st3(1) > 0 && st3(2) > 0)
-            u(1) = 0.1
-            u(2) = 0.2
-            else 
-                u(1) = 0.2
-                u(2) = 0
+    % Cas tout droit
+    if(st1(1) >= 1 || (st1(1) <= 1 && st1(2) > 1))
+        if(st2(1) > rasta.H / capteur.Portee || (st2(1) <= 1 && st2(2) > 1))
+            if(st3(1) > rasta.H / capteur.Portee || (st3(1) <= 1 && st3(2) > 1))
+                vitesse(1) = 1
+                vitesse(2) = 0
             end
         end
+        
+    elseif(st2(1) <= rasta.H / capteur.Portee && st2(2) < 1 && st2(1) > 0 && st2(2) > 0)
+            vitesse(1) = 0
+            vitesse(2) = -0.2
+        
+    
+    elseif(st3(1) <= rasta.H / capteur.Portee && st3(2) < 1 && st3(1) > 0 && st3(2) > 0)
+            vitesse(1) = 0
+            vitesse(2) = 0.2
+ 
+        
+    elseif(st2(1) < 1 && st2(2) < 1 && st2(1) > 0 && st2(2) > 0)
+       % if(st3(1) < 1 && st3(2) < 1 && st3(1) > 0 && st3(2) > 0 && st2(1) <= st3(1))
+            vitesse(1) = 1 * (st2(1) - rasta.H / capteur.Portee)
+            vitesse(2) = -0.2  / (st2(1) - rasta.H / capteur.Portee)
+       % end
+        
+    elseif (st3(1) < 1 && st3(2) < 1 && st3(1) > 0 && st3(2) > 0)
+        vitesse(1) = 1 * (st3(1) - rasta.H / capteur.Portee)
+        vitesse(2) = 0.2 / (st3(1) - rasta.H / capteur.Portee)
+    else 
+        vitesse(1) = 1
+        vitesse(2) = 0     
     end
     
     % simu du robot
-    [t45,x45] = ode45(@(t,x)Modele(t,x,u,rasta),[0 dt],x);
+    u(1) = (vitesse(2) * rasta.L)/(2*rasta.R) + vitesse(1)/rasta.R
+    u(2) = -(vitesse(2) * rasta.L)/(2*rasta.R) + vitesse(1)/rasta.R
+    [t45,x45] = ode45(@(t,x)Modele(t,x,u,rasta, tau),[0 dt],x);
     L45 = length(t45);
     x = x45(L45,:);
     drawnow
